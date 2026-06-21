@@ -46,22 +46,22 @@
 
                         <div class="form-grid">
                             <label class="field-control input-field active" data-board-field="boardWidth">
-                                <span class="field-label">폭 (mm)</span>
-                                <input type="number" id="boardWidth" value="2440">
+                                <span class="field-label">가로 (mm)</span>
+                                <input type="number" id="boardWidth" value="2440" min="1" step="1">
                                 <span class="field-value"><span id="displayBoardWidth">2440</span><span class="field-unit">mm</span></span>
                             </label>
                             <label class="field-control input-field" data-board-field="boardHeight">
-                                <span class="field-label">길이 (mm)</span>
-                                <input type="number" id="boardHeight" value="1220">
+                                <span class="field-label">세로 (mm)</span>
+                                <input type="number" id="boardHeight" value="1220" min="1" step="1">
                                 <span class="field-value"><span id="displayBoardHeight">1220</span><span class="field-unit">mm</span></span>
                             </label>
                             <label class="field-control">
                                 <span class="field-label">두께 (mm)</span>
-                                <input type="number" id="boardThickness" value="18">
+                                <input type="number" id="boardThickness" value="18" min="1" step="1">
                             </label>
                             <label class="field-control">
                                 <span class="field-label">톱날 두께 (mm)</span>
-                                <input type="number" id="kerfInput" value="4.2" step="0.1">
+                                <input type="number" id="kerfInput" value="4.2" min="0" step="0.1">
                             </label>
                         </div>
 
@@ -69,11 +69,11 @@
                             <label class="check-row">
                                 <input type="checkbox" id="preCutting">
                                 <span>
-                                    <strong>전단여부</strong>
-                                    <small>정확한 재단을 원할 경우만 사용</small>
+                                    <strong>선재단 여부</strong>
+                                    <small>정확한 재단 전 여유분을 고려할 때 사용</small>
                                 </span>
                             </label>
-                            <div class="warning-box">약 14mm 소실됨</div>
+                            <div class="warning-box">14mm 손실 적용</div>
                         </div>
 
                         <div class="screen-footer">
@@ -87,25 +87,25 @@
                                 <p class="eyebrow">Parts</p>
                                 <h2>부품 목록</h2>
                             </div>
-                            <span class="parts-count-badge" id="partsCount">절단 0개</span>
+                            <span class="parts-count-badge" id="partsCount">원단 0개</span>
                         </div>
 
                         <div class="parts-entry-row">
-                            <button class="input-box-compact" type="button" data-field="width">
-                                <span class="box-label">치수1</span>
-                                <span class="box-value" id="inputWidth">0</span>
+                            <label class="input-box-compact">
+                                <span class="box-label">가로</span>
+                                <input class="box-number-input" type="number" id="inputWidth" value="0" min="0" step="1">
                                 <span class="box-unit">mm</span>
-                            </button>
-                            <button class="input-box-compact" type="button" data-field="height">
-                                <span class="box-label">치수2</span>
-                                <span class="box-value" id="inputHeight">0</span>
+                            </label>
+                            <label class="input-box-compact">
+                                <span class="box-label">세로</span>
+                                <input class="box-number-input" type="number" id="inputHeight" value="0" min="0" step="1">
                                 <span class="box-unit">mm</span>
-                            </button>
-                            <button class="input-box-compact qty-box" type="button" data-field="qty">
+                            </label>
+                            <label class="input-box-compact qty-box">
                                 <span class="box-label">수량</span>
-                                <span class="box-value" id="inputQty">0</span>
+                                <input class="box-number-input" type="number" id="inputQty" value="0" min="0" step="1">
                                 <span class="box-unit">개</span>
-                            </button>
+                            </label>
                             <button class="grain-toggle-icon" type="button" id="grainToggle">
                                 <div class="grain-icon-box">
                                     <div class="grain-pattern-mini"></div>
@@ -123,7 +123,7 @@
                             <div class="parts-list-scroll" id="partsList">
                                 <div class="empty-state" id="emptyState">
                                     <span class="empty-text">부품을 추가하세요</span>
-                                    <span class="empty-hint">치수와 수량 입력 후 부품 추가</span>
+                                    <span class="empty-hint">가로, 세로, 수량 입력 후 부품 추가</span>
                                 </div>
                             </div>
                         </div>
@@ -192,7 +192,7 @@
 
                         <div class="result-summary-bar">
                             <div class="summary-card">
-                                <span class="summary-lbl">총 판재수</span>
+                                <span class="summary-lbl">총 판재 수</span>
                                 <span class="summary-val" id="statBoards">-</span>
                             </div>
                             <div class="summary-card">
@@ -225,48 +225,6 @@
         </main>
 
         <input type="checkbox" id="partRotatable" checked class="hidden">
-
-        <div class="keypad-popup-overlay hidden" id="keypadOverlay">
-            <div class="keypad-popup">
-                <div class="keypad-display-section">
-                    <div class="keypad-field-name" id="keypadFieldLabel">치수1</div>
-                    <div class="keypad-large-value">
-                        <span id="keypadPreview">0</span><span class="unit" id="keypadUnit">mm</span>
-                    </div>
-                    <div class="validation-warning" id="validationWarning"></div>
-                </div>
-                <div class="keypad-grid">
-                    <button class="key" data-key="1">1</button>
-                    <button class="key" data-key="2">2</button>
-                    <button class="key" data-key="3">3</button>
-                    <button class="key" data-key="4">4</button>
-                    <button class="key" data-key="5">5</button>
-                    <button class="key" data-key="6">6</button>
-                    <button class="key" data-key="7">7</button>
-                    <button class="key" data-key="8">8</button>
-                    <button class="key" data-key="9">9</button>
-                    <button class="key key-back" data-key="backspace">⌫</button>
-                    <button class="key" data-key="0">0</button>
-                    <button class="key key-confirm" data-key="done">완료</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="pdf-modal-overlay hidden" id="pdfModal">
-        <div class="pdf-modal">
-            <div class="pdf-modal-header">
-                <span>PDF 미리보기</span>
-                <button class="pdf-close-btn" id="pdfCloseBtn" type="button">×</button>
-            </div>
-            <div class="pdf-modal-content">
-                <canvas id="pdfPreviewCanvas"></canvas>
-            </div>
-            <div class="pdf-modal-footer">
-                <button class="btn btn-secondary" id="pdfDownloadBtn" type="button">PDF 다운로드</button>
-                <button class="btn btn-primary" id="pdfShareBtn" type="button">공유하기</button>
-            </div>
-        </div>
     </div>
 
     <script src="js/packer.js"></script>

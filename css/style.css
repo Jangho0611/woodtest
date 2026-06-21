@@ -341,6 +341,21 @@ button {
     text-align: left;
 }
 
+.box-number-input {
+    width: 100%;
+    height: 34px;
+    border: 0;
+    background: transparent;
+    color: var(--text-main);
+    font-size: 22px;
+    font-weight: 800;
+    outline: 0;
+}
+
+.box-number-input:focus {
+    color: var(--primary);
+}
+
 .box-value {
     color: var(--text-main);
     font-size: 22px;
@@ -726,152 +741,37 @@ button {
     text-align: center;
 }
 
-.keypad-popup-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 1000;
-    display: flex;
-    background: rgba(15, 23, 42, 0.45);
-}
-
-.keypad-popup {
-    width: min(520px, calc(100% - 28px));
-    height: 420px;
-    display: flex;
-    flex-direction: column;
-    margin: auto auto 24px;
-    padding: 18px;
-    border: 1px solid var(--border);
-    border-radius: 18px;
-    background: #ffffff;
-    box-shadow: 0 24px 80px rgba(15, 23, 42, 0.26);
-}
-
-.keypad-display-section {
-    display: flex;
-    flex: 1;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-}
-
-.keypad-field-name {
-    margin-bottom: 8px;
-    color: var(--text-muted);
-    font-size: 15px;
-    font-weight: 800;
-}
-
-.keypad-large-value {
-    color: var(--primary);
-    font-size: 56px;
-    font-weight: 800;
-    line-height: 1;
-}
-
-.keypad-large-value .unit {
-    margin-left: 6px;
-    color: var(--text-muted);
-    font-size: 20px;
-}
-
-.validation-warning {
-    min-height: 18px;
-    margin-top: 8px;
-    color: var(--danger);
-    font-size: 13px;
-    font-weight: 700;
-}
-
-.keypad-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-    height: 220px;
-}
-
-.key {
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    background: var(--surface-soft);
-    color: var(--text-main);
-    font-size: 22px;
-    font-weight: 800;
-}
-
-.key-confirm {
-    border-color: var(--primary);
-    background: var(--primary);
-    color: #ffffff;
-}
-
-.key-back {
-    color: var(--danger);
-}
-
-.pdf-modal-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 10000;
-    display: flex;
-    background: rgba(15, 23, 42, 0.72);
-}
-
-.pdf-modal {
-    width: min(960px, calc(100% - 32px));
-    max-height: calc(100vh - 32px);
-    display: flex;
-    flex-direction: column;
-    margin: auto;
-    overflow: hidden;
-    border-radius: var(--radius-lg);
-    background: #ffffff;
-}
-
-.pdf-modal-header,
-.pdf-modal-footer {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 16px;
-    border-bottom: 1px solid var(--border);
-    font-weight: 800;
-}
-
-.pdf-modal-footer {
-    border-top: 1px solid var(--border);
-    border-bottom: 0;
-}
-
-.pdf-close-btn {
-    width: 34px;
-    height: 34px;
-    border: 0;
-    border-radius: var(--radius-sm);
-    background: var(--surface-soft);
-    color: var(--text-main);
-    font-size: 22px;
-}
-
-.pdf-modal-content {
-    min-height: 340px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: auto;
-    padding: 20px;
-}
-
-.pdf-modal-content canvas {
-    max-width: 100%;
-    max-height: 100%;
-    border-radius: var(--radius-sm);
-    background: #ffffff;
-}
-
 .hidden {
     display: none !important;
+}
+
+.toast {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    z-index: 1000;
+    max-width: min(360px, calc(100% - 40px));
+    padding: 13px 16px;
+    border: 1px solid var(--primary-border);
+    border-radius: var(--radius-md);
+    background: #ffffff;
+    color: var(--text-main);
+    font-size: 14px;
+    font-weight: 800;
+    box-shadow: 0 16px 40px rgba(15, 23, 42, 0.16);
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.2s, transform 0.2s;
+}
+
+.toast.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.toast-error {
+    border-color: #fecaca;
+    color: #991b1b;
 }
 
 ::-webkit-scrollbar {

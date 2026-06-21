@@ -1,29 +1,24 @@
 class CuttingAppMobile {
     constructor() {
         this.currentStep = 1;
-        this.currentField = 'width';
-        this.inputValues = {
-            boardWidth: '2440',
-            boardHeight: '1220',
-            width: '0',
-            height: '0',
-            qty: '0'
-        };
         this.parts = [];
         this.kerf = 4.2;
         this.lastResult = null;
         this.currentBoardIndex = 0;
         this.renderer = null;
+        this.resultBoardWidth = 2440;
+        this.resultBoardHeight = 1220;
         this.bindEvents();
         this.updateStepIndicator();
         this.updateGrainUI();
+        this.syncBoardInputs();
     }
 
     bindEvents() {
         document.querySelector('.logo')?.addEventListener('click', () => this.goToStep(1));
         document.getElementById('newProjectBtn')?.addEventListener('click', () => this.newProject());
         document.getElementById('saveProjectBtn')?.addEventListener('click', () => this.saveProject());
-        document.getElementById('previewBtn')?.addEventListener('click', () => this.openPdfModal());
+        document.getElementById('previewBtn')?.addEventListener('click', () => this.previewDrawing());
 
         document.querySelectorAll('.step-indicator .step').forEach((step) => {
             step.addEventListener('click', (event) => {
@@ -40,35 +35,29 @@ class CuttingAppMobile {
 
         document.querySelectorAll('[data-board-field]').forEach((field) => {
             field.addEventListener('click', (event) => {
-                this.currentField = event.currentTarget.dataset.boardField;
                 document.querySelectorAll('.input-field').forEach((el) => el.classList.remove('active'));
                 event.currentTarget.classList.add('active');
             });
-        });
-
-        document.querySelectorAll('.input-box-compact[data-field]').forEach((box) => {
-            box.addEventListener('click', (event) => this.selectField(event.currentTarget.dataset.field));
-        });
-
-        document.querySelectorAll('.key').forEach((key) => {
-            key.addEventListener('click', (event) => this.handleKeyPress(event.currentTarget.dataset.key));
-        });
-
-        document.getElementById('keypadOverlay')?.addEventListener('click', (event) => {
-            if (event.target.id === 'keypadOverlay') this.setKeypadVisibility(false);
         });
 
         ['boardWidth', 'boardHeight', 'boardThickness', 'kerfInput'].forEach((id) => {
             document.getElementById(id)?.addEventListener('input', () => this.syncBoardInputs());
         });
 
+        ['inputWidth', 'inputHeight', 'inputQty'].forEach((id) => {
+            const input = document.getElementById(id);
+            input?.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    this.addPart();
+                }
+            });
+        });
+
         document.getElementById('prevBoard')?.addEventListener('click', () => this.navigateBoard(-1));
         document.getElementById('nextBoard')?.addEventListener('click', () => this.navigateBoard(1));
-        document.getElementById('shareBtn')?.addEventListener('click', () => this.openPdfModal());
-        document.getElementById('downloadPdfBtn')?.addEventListener('click', () => this.openPdfModal());
-        document.getElementById('pdfCloseBtn')?.addEventListener('click', () => this.closePdfModal());
-        document.getElementById('pdfDownloadBtn')?.addEventListener('click', () => this.downloadPDF());
-        document.getElementById('pdfShareBtn')?.addEventListener('click', () => this.share());
+        document.getElementById('shareBtn')?.addEventListener('click', () => this.previewDrawing());
+        document.getElementById('downloadPdfBtn')?.addEventListener('click', () => this.downloadPDF());
 
         document.getElementById('zoomIn')?.addEventListener('click', () => this.zoom(0.25));
         document.getElementById('zoomOut')?.addEventListener('click', () => this.zoom(-0.25));
@@ -94,13 +83,11 @@ class CuttingAppMobile {
     }
 
     syncBoardInputs() {
-        const boardWidth = document.getElementById('boardWidth')?.value || '2440';
-        const boardHeight = document.getElementById('boardHeight')?.value || '1220';
+        const boardWidth = this.getPositiveNumber('boardWidth', 2440);
+        const boardHeight = this.getPositiveNumber('boardHeight', 1220);
         const kerf = parseFloat(document.getElementById('kerfInput')?.value || '4.2');
 
-        this.inputValues.boardWidth = boardWidth;
-        this.inputValues.boardHeight = boardHeight;
-        this.kerf = Number.isFinite(kerf) ? kerf : 4.2;
+        this.kerf = Number.isFinite(kerf) && kerf >= 0 ? kerf : 4.2;
 
         const displayBoardWidth = document.getElementById('displayBoardWidth');
         const displayBoardHeight = document.getElementById('displayBoardHeight');
@@ -108,56 +95,9 @@ class CuttingAppMobile {
         if (displayBoardHeight) displayBoardHeight.textContent = boardHeight;
     }
 
-    selectField(field) {
-        this.currentField = field;
-        document.querySelectorAll('.input-box-compact').forEach((box) => box.classList.remove('active'));
-        document.querySelector(`[data-field="${field}"]`)?.classList.add('active');
-        this.inputValues[field] = '';
-        this.updateInputField(field, '');
-        this.updateKeypadHeader();
-        this.setKeypadVisibility(true);
-    }
-
-    updateKeypadHeader() {
-        const labels = { width: '치수1', height: '치수2', qty: '수량' };
-        document.getElementById('keypadFieldLabel').textContent = labels[this.currentField] || '값 입력';
-        document.getElementById('keypadUnit').textContent = this.currentField === 'qty' ? '개' : 'mm';
-        document.getElementById('keypadPreview').textContent = this.inputValues[this.currentField] || '0';
-    }
-
-    setKeypadVisibility(visible) {
-        document.getElementById('keypadOverlay')?.classList.toggle('hidden', !visible);
-        if (!visible) {
-            document.querySelectorAll('.input-box-compact').forEach((box) => box.classList.remove('active'));
-        }
-    }
-
-    handleKeyPress(key) {
-        let current = this.inputValues[this.currentField] || '';
-        if (current === '0') current = '';
-
-        if (key === 'done') {
-            if (this.currentField === 'width') this.selectField('height');
-            else if (this.currentField === 'height') this.selectField('qty');
-            else this.setKeypadVisibility(false);
-            return;
-        }
-
-        if (key === 'backspace') {
-            current = current.slice(0, -1);
-        } else if (/^\d$/.test(key)) {
-            if (!(current === '' && key === '0')) current += key;
-        }
-
-        this.inputValues[this.currentField] = current || '0';
-        this.updateInputField(this.currentField, current || '0');
-        document.getElementById('keypadPreview').textContent = current || '0';
-    }
-
-    updateInputField(field, value) {
-        const displayId = `input${field.charAt(0).toUpperCase()}${field.slice(1)}`;
-        const target = document.getElementById(displayId);
-        if (target) target.textContent = value || '0';
+    getPositiveNumber(id, fallback = 0) {
+        const value = Number(document.getElementById(id)?.value);
+        return Number.isFinite(value) && value > 0 ? value : fallback;
     }
 
     toggleGrain() {
@@ -178,29 +118,33 @@ class CuttingAppMobile {
     }
 
     addPart() {
-        const width = Number(this.inputValues.width);
-        const height = Number(this.inputValues.height);
-        const qty = Number(this.inputValues.qty) || 1;
+        const width = this.getPositiveNumber('inputWidth');
+        const height = this.getPositiveNumber('inputHeight');
+        const qty = this.getPositiveNumber('inputQty', 1);
 
-        if (!width || !height || width <= 0 || height <= 0) {
-            this.showToast('치수1과 치수2를 입력하세요.', 'error');
+        if (!width || !height || width <= 0 || height <= 0 || qty <= 0) {
+            this.showToast('가로, 세로, 수량을 1 이상으로 입력하세요.', 'error');
             return;
         }
 
         const rotatable = document.getElementById('partRotatable')?.checked ?? true;
-        this.parts.push({ width, height, qty, rotatable });
+        this.parts.push({
+            width: Math.round(width),
+            height: Math.round(height),
+            qty: Math.round(qty),
+            rotatable
+        });
         this.renderPartsList();
         this.resetPartInputs();
+        this.clearResult();
         this.showToast('부품을 추가했습니다.', 'success');
     }
 
     resetPartInputs() {
-        this.inputValues.width = '0';
-        this.inputValues.height = '0';
-        this.inputValues.qty = '0';
-        this.updateInputField('width', '0');
-        this.updateInputField('height', '0');
-        this.updateInputField('qty', '0');
+        ['inputWidth', 'inputHeight', 'inputQty'].forEach((id) => {
+            const input = document.getElementById(id);
+            if (input) input.value = '0';
+        });
     }
 
     renderPartsList() {
@@ -211,7 +155,7 @@ class CuttingAppMobile {
             container.innerHTML = `
                 <div class="empty-state" id="emptyState">
                     <span class="empty-text">부품을 추가하세요</span>
-                    <span class="empty-hint">치수와 수량 입력 후 부품 추가</span>
+                    <span class="empty-hint">가로, 세로, 수량 입력 후 부품 추가</span>
                 </div>
             `;
         } else {
@@ -273,7 +217,6 @@ class CuttingAppMobile {
 
         part[field] = Math.round(next);
         input.value = part[field];
-        this.lastResult = null;
         this.clearResult();
         this.updatePartsCount();
     }
@@ -281,17 +224,17 @@ class CuttingAppMobile {
     updatePartsCount() {
         const totalParts = this.parts.reduce((sum, part) => sum + part.qty, 0);
         const count = document.getElementById('partsCount');
-        if (count) count.textContent = `절단 ${totalParts}개`;
+        if (count) count.textContent = `원단 ${totalParts}개`;
     }
 
     removePart(index) {
         this.parts.splice(index, 1);
         this.renderPartsList();
+        this.clearResult();
     }
 
     clearParts() {
         this.parts = [];
-        this.lastResult = null;
         this.renderPartsList();
         this.clearResult();
     }
@@ -303,9 +246,9 @@ class CuttingAppMobile {
         }
 
         this.syncBoardInputs();
-        let boardWidth = Number(document.getElementById('boardWidth').value);
-        let boardHeight = Number(document.getElementById('boardHeight').value);
-        const thickness = Number(document.getElementById('boardThickness').value);
+        let boardWidth = this.getPositiveNumber('boardWidth', 2440);
+        let boardHeight = this.getPositiveNumber('boardHeight', 1220);
+        const thickness = this.getPositiveNumber('boardThickness', 18);
         const preCutting = document.getElementById('preCutting')?.checked ?? false;
 
         if (preCutting) {
@@ -313,24 +256,31 @@ class CuttingAppMobile {
             boardHeight -= 14;
         }
 
+        if (boardWidth <= 0 || boardHeight <= 0) {
+            this.showToast('판재 크기를 확인하세요.', 'error');
+            return;
+        }
+
         const packer = new GuillotinePacker(boardWidth, boardHeight, this.kerf);
         const result = packer.pack(this.parts);
         this.lastResult = result;
         this.currentBoardIndex = 0;
+        this.resultBoardWidth = boardWidth;
+        this.resultBoardHeight = boardHeight;
 
         const totalCuts = result.bins.reduce((sum, bin) => sum + (bin.cuttingCount || 0), 0);
         const cost = this.calculateCuttingCost(thickness, totalCuts);
         const efficiency = result.totalEfficiency || 0;
 
-        document.getElementById('statCost').textContent = `${cost.toLocaleString()}원`;
-        document.getElementById('statCuts').textContent = `${totalCuts}회`;
-        document.getElementById('statBoards').textContent = `${result.bins.length}장`;
-        document.getElementById('statEfficiency').textContent = `${efficiency.toFixed(1)}%`;
-        document.getElementById('boardSizeLabel').textContent = `${boardWidth} × ${boardHeight} mm`;
+        this.setText('statCost', `${cost.toLocaleString()}원`);
+        this.setText('statCuts', `${totalCuts}회`);
+        this.setText('statBoards', `${result.bins.length}장`);
+        this.setText('statEfficiency', `${efficiency.toFixed(1)}%`);
+        this.setText('boardSizeLabel', `${boardWidth} × ${boardHeight} mm`);
 
         this.goToStep(3);
         requestAnimationFrame(() => this.renderResult());
-        this.showToast('최적화 계산이 완료되었습니다.', 'success');
+        this.showToast('최적화 계산을 완료했습니다.', 'success');
     }
 
     calculateCuttingCost(thickness, totalCuts) {
@@ -344,11 +294,11 @@ class CuttingAppMobile {
         const bin = this.lastResult.bins[this.currentBoardIndex];
         if (!this.renderer) this.renderer = new CuttingRenderer('resultCanvas');
 
-        const boardWidth = Number(document.getElementById('boardWidth').value);
-        const boardHeight = Number(document.getElementById('boardHeight').value);
+        const boardWidth = this.resultBoardWidth || this.getPositiveNumber('boardWidth', 2440);
+        const boardHeight = this.resultBoardHeight || this.getPositiveNumber('boardHeight', 1220);
         const legend = this.renderer.render(boardWidth, boardHeight, bin.placed, this.kerf);
 
-        document.getElementById('boardIndicator').textContent = `${this.currentBoardIndex + 1} / ${this.lastResult.bins.length}`;
+        this.setText('boardIndicator', `${this.currentBoardIndex + 1} / ${this.lastResult.bins.length}`);
         document.getElementById('emptyDrawing')?.classList.add('is-hidden');
         this.updateLegend(legend);
     }
@@ -360,165 +310,146 @@ class CuttingAppMobile {
             container.innerHTML = '';
             return;
         }
-        const circles = ['①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨', '⑩'];
-        container.innerHTML = `<span class="legend-title">범례</span> ${legend.map((item) => {
-            const circle = circles[item.id - 1] || `(${item.id})`;
-            return `${circle} ${item.width}×${item.height} ×${item.count}`;
-        }).join('   ')}`;
+
+        container.innerHTML = `
+            <div class="legend-title">작은 부품 번호</div>
+            ${legend.map((item) => `${this.getCircledNumber(item.id)} ${item.width} × ${item.height} mm (${item.count}개)`).join('<br>')}
+        `;
     }
 
-    navigateBoard(delta) {
-        if (!this.lastResult) return;
-        const next = this.currentBoardIndex + delta;
-        if (next < 0 || next >= this.lastResult.bins.length) return;
-        this.currentBoardIndex = next;
-        if (this.renderer) {
-            this.renderer.zoom = 1;
-            this.renderer.offsetX = 0;
-            this.renderer.offsetY = 0;
-        }
-        this.updateZoomUI();
+    getCircledNumber(num) {
+        const circles = ['①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨', '⑩'];
+        return circles[num - 1] || `(${num})`;
+    }
+
+    navigateBoard(direction) {
+        if (!this.lastResult || this.lastResult.bins.length === 0) return;
+        const nextIndex = this.currentBoardIndex + direction;
+        if (nextIndex < 0 || nextIndex >= this.lastResult.bins.length) return;
+        this.currentBoardIndex = nextIndex;
         this.renderResult();
     }
 
     zoom(delta) {
-        if (!this.renderer || !this.lastResult) return;
-        this.renderer.zoom = Math.min(Math.max(this.renderer.zoom + delta, 0.5), 4);
-        this.updateZoomUI();
+        if (!this.renderer) return;
+        this.renderer.zoom = Math.max(0.5, Math.min(3, this.renderer.zoom + delta));
+        this.setText('zoomLevel', `${Math.round(this.renderer.zoom * 100)}%`);
         this.renderResult();
     }
 
-    updateZoomUI() {
-        const zoomLevel = document.getElementById('zoomLevel');
-        if (zoomLevel && this.renderer) zoomLevel.textContent = `${Math.round(this.renderer.zoom * 100)}%`;
-    }
-
-    clearResult() {
-        ['statCost', 'statCuts', 'statBoards', 'statEfficiency'].forEach((id) => {
-            const el = document.getElementById(id);
-            if (el) el.textContent = '-';
-        });
-        document.getElementById('emptyDrawing')?.classList.remove('is-hidden');
-        const legend = document.getElementById('legendSection');
-        if (legend) legend.innerHTML = '';
-    }
-
-    openPdfModal() {
+    previewDrawing() {
         if (!this.lastResult) {
             this.showToast('먼저 최적화 계산을 실행하세요.', 'error');
             return;
         }
         this.goToStep(2);
-        requestAnimationFrame(() => {
-            this.renderResult();
-            const sourceCanvas = document.getElementById('resultCanvas');
-            const previewCanvas = document.getElementById('pdfPreviewCanvas');
-            const modal = document.getElementById('pdfModal');
-            if (!sourceCanvas || !previewCanvas || !modal) return;
-
-            previewCanvas.width = sourceCanvas.width;
-            previewCanvas.height = sourceCanvas.height;
-            previewCanvas.getContext('2d').drawImage(sourceCanvas, 0, 0);
-            modal.classList.remove('hidden');
-        });
+        requestAnimationFrame(() => this.renderResult());
     }
 
-    closePdfModal() {
-        document.getElementById('pdfModal')?.classList.add('hidden');
-    }
-
-    downloadPDF() {
-        if (!window.jspdf || !this.lastResult) return;
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF('p', 'mm', 'a4');
-        const canvas = document.getElementById('resultCanvas');
-
-        doc.setFontSize(18);
-        doc.text('대산 Ai 재단 최적화', 20, 20);
-        doc.setFontSize(11);
-        doc.text(`판재: ${document.getElementById('boardWidth').value} x ${document.getElementById('boardHeight').value} mm`, 20, 32);
-        doc.text(`판재수: ${document.getElementById('statBoards').textContent}`, 20, 40);
-        doc.text(`재단 횟수: ${document.getElementById('statCuts').textContent}`, 20, 48);
-        doc.text(`재단비: ${document.getElementById('statCost').textContent}`, 20, 56);
-
-        if (canvas) {
-            doc.addImage(canvas.toDataURL('image/png'), 'PNG', 15, 68, 180, 0);
-        }
-        doc.save(`daesan-ai-${Date.now()}.pdf`);
-    }
-
-    share() {
-        const text = [
-            '[대산 Ai 재단 최적화]',
-            `총 판재수: ${document.getElementById('statBoards').textContent}`,
-            `재단 횟수: ${document.getElementById('statCuts').textContent}`,
-            `총 재단비: ${document.getElementById('statCost').textContent}`,
-            `배치 효율: ${document.getElementById('statEfficiency').textContent}`
-        ].join('\n');
-
-        if (navigator.share) {
-            navigator.share({ title: '대산 Ai 재단 최적화', text }).catch(() => {});
-        } else if (navigator.clipboard) {
-            navigator.clipboard.writeText(text);
-            this.showToast('결과를 클립보드에 복사했습니다.', 'success');
-        }
+    clearResult() {
+        this.lastResult = null;
+        this.currentBoardIndex = 0;
+        this.resultBoardWidth = this.getPositiveNumber('boardWidth', 2440);
+        this.resultBoardHeight = this.getPositiveNumber('boardHeight', 1220);
+        this.setText('statCost', '-');
+        this.setText('statCuts', '-');
+        this.setText('statBoards', '-');
+        this.setText('statEfficiency', '-');
+        this.setText('boardIndicator', '1 / 1');
+        document.getElementById('emptyDrawing')?.classList.remove('is-hidden');
+        const legend = document.getElementById('legendSection');
+        if (legend) legend.innerHTML = '';
     }
 
     saveProject() {
         const payload = {
-            board: {
-                width: document.getElementById('boardWidth').value,
-                height: document.getElementById('boardHeight').value,
-                thickness: document.getElementById('boardThickness').value,
-                kerf: document.getElementById('kerfInput').value
-            },
+            boardWidth: this.getPositiveNumber('boardWidth', 2440),
+            boardHeight: this.getPositiveNumber('boardHeight', 1220),
+            boardThickness: this.getPositiveNumber('boardThickness', 18),
+            kerf: this.kerf,
             parts: this.parts
         };
-        localStorage.setItem('daesan-ai-project', JSON.stringify(payload));
-        this.showToast('현재 프로젝트를 저장했습니다.', 'success');
+        localStorage.setItem('daesan-ai-cutting-project', JSON.stringify(payload));
+        this.showToast('프로젝트를 저장했습니다.', 'success');
     }
 
     newProject() {
         this.parts = [];
         this.lastResult = null;
-        this.currentBoardIndex = 0;
-        document.getElementById('boardWidth').value = '2440';
-        document.getElementById('boardHeight').value = '1220';
-        document.getElementById('boardThickness').value = '18';
-        document.getElementById('kerfInput').value = '4.2';
-        document.getElementById('preCutting').checked = false;
-        this.syncBoardInputs();
+        ['boardWidth', 'boardHeight', 'boardThickness', 'kerfInput'].forEach((id) => {
+            const defaults = { boardWidth: '2440', boardHeight: '1220', boardThickness: '18', kerfInput: '4.2' };
+            const input = document.getElementById(id);
+            if (input) input.value = defaults[id];
+        });
         this.resetPartInputs();
+        document.getElementById('partRotatable').checked = true;
+        this.updateGrainUI();
+        this.syncBoardInputs();
         this.renderPartsList();
         this.clearResult();
         this.goToStep(1);
+        this.showToast('새 프로젝트를 시작합니다.', 'success');
     }
 
-    showToast(message, type = 'info') {
-        document.querySelector('.toast')?.remove();
+    downloadPDF() {
+        if (!this.lastResult) {
+            this.showToast('먼저 최적화 계산을 실행하세요.', 'error');
+            return;
+        }
+
+        const canvas = document.getElementById('resultCanvas');
+        if (!canvas) return;
+
+        const createPdf = () => {
+            const jsPDF = window.jspdf?.jsPDF;
+            if (!jsPDF) {
+                this.showToast('PDF 라이브러리를 불러오지 못했습니다.', 'error');
+                return;
+            }
+
+            const pdf = new jsPDF('landscape', 'mm', 'a4');
+            const imgData = canvas.toDataURL('image/png');
+            pdf.setFontSize(16);
+            pdf.text('대산 Ai 재단 최적화 결과', 12, 14);
+            pdf.addImage(imgData, 'PNG', 12, 22, 273, 150);
+            pdf.save(`daesan-ai-cutting-${Date.now()}.pdf`);
+            this.showToast('PDF를 다운로드했습니다.', 'success');
+        };
+
+        if (this.currentStep !== 2) {
+            this.goToStep(2);
+            requestAnimationFrame(() => {
+                this.renderResult();
+                createPdf();
+            });
+            return;
+        }
+
+        this.renderResult();
+        createPdf();
+    }
+
+    share() {
+        this.previewDrawing();
+    }
+
+    setText(id, value) {
+        const target = document.getElementById(id);
+        if (target) target.textContent = value;
+    }
+
+    showToast(message, type = 'success') {
         const toast = document.createElement('div');
         toast.className = `toast toast-${type}`;
         toast.textContent = message;
-        toast.style.cssText = `
-            position: fixed;
-            left: 50%;
-            bottom: 24px;
-            transform: translateX(-50%);
-            z-index: 9999;
-            padding: 12px 18px;
-            border-radius: 10px;
-            background: ${type === 'error' ? '#ef4444' : '#111827'};
-            color: #fff;
-            font-size: 14px;
-            font-weight: 700;
-            box-shadow: 0 12px 36px rgba(15, 23, 42, 0.2);
-        `;
         document.body.appendChild(toast);
-        window.setTimeout(() => toast.remove(), 2400);
+        requestAnimationFrame(() => toast.classList.add('show'));
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 200);
+        }, 2200);
     }
 }
 
-let app;
-document.addEventListener('DOMContentLoaded', () => {
-    app = new CuttingAppMobile();
-});
+const app = new CuttingAppMobile();
+window.app = app;
